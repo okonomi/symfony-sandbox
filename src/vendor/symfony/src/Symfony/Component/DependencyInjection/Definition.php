@@ -1,15 +1,15 @@
 <?php
 
-namespace Symfony\Component\DependencyInjection;
-
 /*
- * This file is part of the Symfony framework.
+ * This file is part of the Symfony package.
  *
  * (c) Fabien Potencier <fabien.potencier@symfony-project.com>
  *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
+
+namespace Symfony\Component\DependencyInjection;
 
 /**
  * Definition represents a service definition.
@@ -22,12 +22,13 @@ class Definition
     protected $file;
     protected $factoryMethod;
     protected $factoryService;
-    protected $shared;
+    protected $scope;
     protected $arguments;
     protected $calls;
     protected $configurator;
     protected $tags;
     protected $public;
+    protected $synthetic;
 
     /**
      * Constructor.
@@ -40,9 +41,10 @@ class Definition
         $this->class = $class;
         $this->arguments = $arguments;
         $this->calls = array();
-        $this->shared = true;
+        $this->scope = ContainerInterface::SCOPE_CONTAINER;
         $this->tags = array();
         $this->public = true;
+        $this->synthetic = false;
     }
 
     /**
@@ -146,6 +148,25 @@ class Definition
     }
 
     /**
+     * Sets a specific argument
+     *
+     * @param integer $index
+     * @param mixed $argument
+     *
+     * @return Definition The current instance
+     */
+    public function setArgument($index, $argument)
+    {
+        if ($index < 0 || $index > count($this->arguments) - 1) {
+            throw new \OutOfBoundsException(sprintf('The index "%d" is not in the range [0, %d].', $index, count($this->arguments) - 1));
+        }
+
+        $this->arguments[$index] = $argument;
+
+        return $this;
+    }
+
+    /**
      * Gets the arguments to pass to the service constructor/factory method.
      *
      * @return array The array of arguments
@@ -211,7 +232,7 @@ class Definition
      *
      * @param  string $method    The method name to search for
      *
-     * @return boolean
+     * @return Boolean
      */
     public function hasMethodCall($method)
     {
@@ -276,6 +297,18 @@ class Definition
     }
 
     /**
+     * Whether this definition has a tag with the given name
+     *
+     * @param string $name
+     *
+     * @return Boolean
+     */
+    public function hasTag($name)
+    {
+        return isset($this->tags[$name]);
+    }
+
+    /**
      * Clears the tags for this definition.
      *
      * @return Definition The current instance
@@ -312,27 +345,27 @@ class Definition
     }
 
     /**
-     * Sets if the service must be shared or not.
+     * Sets the scope of the service
      *
-     * @param  Boolean $shared Whether the service must be shared or not
+     * @param  string $string Whether the service must be shared or not
      *
      * @return Definition The current instance
      */
-    public function setShared($shared)
+    public function setScope($scope)
     {
-        $this->shared = (Boolean) $shared;
+        $this->scope = $scope;
 
         return $this;
     }
 
     /**
-     * Returns true if the service must be shared.
+     * Returns the scope of the service
      *
-     * @return Boolean true if the service is shared, false otherwise
+     * @return string
      */
-    public function isShared()
+    public function getScope()
     {
-        return $this->shared;
+        return $this->scope;
     }
 
     /**
@@ -356,6 +389,32 @@ class Definition
     public function isPublic()
     {
         return $this->public;
+    }
+
+    /**
+     * Sets whether this definition is synthetic, that is not constructed by the
+     * container, but dynamically injected.
+     *
+     * @param Boolean $boolean
+     *
+     * @return Definition the current instance
+     */
+    public function setSynthetic($boolean)
+    {
+        $this->synthetic = (Boolean) $boolean;
+
+        return $this;
+    }
+
+    /**
+     * Whether this definition is synthetic, that is not constructed by the
+     * container, but dynamically injected.
+     *
+     * @return Boolean
+     */
+    public function isSynthetic()
+    {
+        return $this->synthetic;
     }
 
     /**

@@ -1,19 +1,19 @@
 <?php
 
+/*
+ * This file is part of the Symfony package.
+ *
+ * (c) Fabien Potencier <fabien.potencier@symfony-project.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Symfony\Component\HttpKernel\DataCollector;
 
 use Symfony\Component\Security\SecurityContext;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-
-/*
- * This file is part of the Symfony framework.
- *
- * (c) Fabien Potencier <fabien.potencier@symfony-project.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
- */
 
 /**
  * SecurityDataCollector.
@@ -39,18 +39,21 @@ class SecurityDataCollector extends DataCollector
                 'enabled'       => false,
                 'authenticated' => false,
                 'user'          => '',
+                'roles'         => array(),
             );
         } elseif (null === $token = $this->context->getToken()) {
             $this->data = array(
                 'enabled'       => true,
                 'authenticated' => false,
                 'user'          => '',
+                'roles'         => array(),
             );
         } else {
             $this->data = array(
                 'enabled'       => true,
                 'authenticated' => $token->isAuthenticated(),
                 'user'          => (string) $token->getUser(),
+                'roles'         => array_map(function ($role){ return $role->getRole();}, $token->getRoles()),
             );
         }
     }
@@ -73,6 +76,16 @@ class SecurityDataCollector extends DataCollector
     public function getUser()
     {
         return $this->data['user'];
+    }
+
+    /**
+     * Gets the roles of the user.
+     *
+     * @return array The roles
+     */
+    public function getRoles()
+    {
+        return $this->data['roles'];
     }
 
     /**

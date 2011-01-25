@@ -1,10 +1,20 @@
 <?php
 
+/*
+ * This file is part of the Symfony package.
+ *
+ * (c) Fabien Potencier <fabien.potencier@symfony-project.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Symfony\Bundle\DoctrineMongoDBBundle\DependencyInjection;
 
-use Symfony\Component\DependencyInjection\Extension\Extension;
+use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Alias;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Resource\FileResource;
@@ -19,6 +29,13 @@ use Symfony\Bundle\DoctrineAbstractBundle\DependencyInjection\AbstractDoctrineEx
  */
 class DoctrineMongoDBExtension extends AbstractDoctrineExtension
 {
+    public function mongodbLoad(array $configs, ContainerBuilder $container)
+    {
+        foreach ($configs as $config) {
+            $this->doMongodbLoad($config, $container);
+        }
+    }
+
     /**
      * Loads the MongoDB ODM configuration.
      *
@@ -29,45 +46,12 @@ class DoctrineMongoDBExtension extends AbstractDoctrineExtension
      * @param array $config An array of configuration settings
      * @param ContainerBuilder $container A ContainerBuilder instance
      */
-    public function mongodbLoad($config, ContainerBuilder $container)
+    protected function doMongodbLoad($config, ContainerBuilder $container)
     {
-        $this->createProxyDirectory($container->getParameter('kernel.cache_dir'));
-        $this->createHydratorDirectory($container->getParameter('kernel.cache_dir'));
         $this->loadDefaults($config, $container);
         $this->loadConnections($config, $container);
         $this->loadDocumentManagers($config, $container);
-    }
-
-    /**
-     * Create the Doctrine MongoDB ODM Document proxy directory
-     */
-    protected function createProxyDirectory($tmpDir)
-    {
-        // Create document proxy directory
-        $proxyCacheDir = $tmpDir.'/doctrine/odm/mongodb/Proxies';
-        if (!is_dir($proxyCacheDir)) {
-            if (false === @mkdir($proxyCacheDir, 0777, true)) {
-                die(sprintf('Unable to create the Doctrine Proxy directory (%s)', dirname($proxyCacheDir)));
-            }
-        } elseif (!is_writable($proxyCacheDir)) {
-            die(sprintf('Unable to write in the Doctrine Proxy directory (%s)', $proxyCacheDir));
-        }
-    }
-
-    /**
-     * Create the Doctrine MongoDB ODM Document hydrator directory
-     */
-    protected function createHydratorDirectory($tmpDir)
-    {
-        // Create document hydrator directory
-        $hydratorCacheDir = $tmpDir.'/doctrine/odm/mongodb/Hydrators';
-        if (!is_dir($hydratorCacheDir)) {
-            if (false === @mkdir($hydratorCacheDir, 0777, true)) {
-                die(sprintf('Unable to create the Doctrine Hydrator directory (%s)', dirname($hydratorCacheDir)));
-            }
-        } elseif (!is_writable($hydratorCacheDir)) {
-            die(sprintf('Unable to write in the Doctrine Hydrator directory (%s)', $hydratorCacheDir));
-        }
+        $this->loadConstraints($config, $container);
     }
 
     /**
@@ -88,7 +72,6 @@ class DoctrineMongoDBExtension extends AbstractDoctrineExtension
         $options = array(
             'default_document_manager',
             'default_connection',
-            'cache_driver',
             'metadata_cache_driver',
             'proxy_namespace',
             'auto_generate_proxy_classes',
@@ -171,20 +154,8 @@ class DoctrineMongoDBExtension extends AbstractDoctrineExtension
         $eventManagerId = sprintf('doctrine.odm.mongodb.%s_event_manager', $eventManagerName);
         if (!$container->hasDefinition($eventManagerId)) {
             $eventManagerDef = new Definition('%doctrine.odm.mongodb.event_manager_class%');
-            $eventManagerDef->addMethodCall('loadTaggedEventListeners', array(
-                new Reference('service_container'),
-            ));
-            $eventManagerDef->addMethodCall('loadTaggedEventListeners', array(
-                new Reference('service_container'),
-                sprintf('doctrine.odm.mongodb.%s_event_listener', $eventManagerName),
-            ));
-            $eventManagerDef->addMethodCall('loadTaggedEventSubscribers', array(
-                new Reference('service_container'),
-            ));
-            $eventManagerDef->addMethodCall('loadTaggedEventSubscribers', array(
-                new Reference('service_container'),
-                sprintf('doctrine.odm.mongodb.%s_event_subscriber', $eventManagerName),
-            ));
+            $eventManagerDef->addTag('doctrine.odm.mongodb.event_manager');
+            $eventManagerDef->setPublic(false);
             $container->setDefinition($eventManagerId, $eventManagerDef);
         }
 
@@ -201,7 +172,11 @@ class DoctrineMongoDBExtension extends AbstractDoctrineExtension
         if ($documentManager['name'] == $defaultDocumentManager) {
             $container->setAlias(
                 'doctrine.odm.mongodb.document_manager',
-                sprintf('doctrine.odm.mongodb.%s_document_manager', $documentManager['name'])
+                new Alias(sprintf('doctrine.odm.mongodb.%s_document_manager', $documentManager['name']))
+            );
+            $container->setAlias(
+                'doctrine.odm.mongodb.event_manager',
+                new Alias(sprintf('doctrine.odm.mongodb.%s_event_manager', $documentManager['name']))
             );
         }
     }
@@ -369,6 +344,16 @@ class DoctrineMongoDBExtension extends AbstractDoctrineExtension
             $method = $odmConfigDef->removeMethodCall('setDocumentNamespaces');
         }
         $odmConfigDef->addMethodCall('setDocumentNamespaces', array($this->aliasMap));
+    }
+
+    protected function loadConstraints($config, ContainerBuilder $container)
+    {
+        if ($container->hasParameter('validator.annotations.namespaces')) {
+            $container->setParameter('validator.annotations.namespaces', array_merge(
+                $container->getParameter('validator.annotations.namespaces'),
+                array('Symfony\Bundle\DoctrineMongoDBBundle\Validator\Constraints\\')
+            ));
+        }
     }
 
     protected function getObjectManagerElementName($name)

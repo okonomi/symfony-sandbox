@@ -1,14 +1,15 @@
 <?php
 
-namespace Symfony\Component\EventDispatcher;
-
 /*
  * This file is part of the Symfony package.
+ *
  * (c) Fabien Potencier <fabien.potencier@symfony-project.com>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
+
+namespace Symfony\Component\EventDispatcher;
 
 /**
  * EventDispatcher implements a dispatcher object.
@@ -47,12 +48,13 @@ class EventDispatcher
      *
      * @param string $name An event name
      * @param mixed|null $listener the listener to remove, or null to remove all
+     *
      * @return void
      */
     public function disconnect($name, $listener = null)
     {
         if (!isset($this->listeners[$name])) {
-            return false;
+            return;
         }
 
         if (null === $listener) {

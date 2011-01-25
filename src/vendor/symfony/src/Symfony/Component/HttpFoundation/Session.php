@@ -1,17 +1,17 @@
 <?php
 
-namespace Symfony\Component\HttpFoundation;
-
-use Symfony\Component\HttpFoundation\SessionStorage\SessionStorageInterface;
-
 /*
- * This file is part of the Symfony framework.
+ * This file is part of the Symfony package.
  *
  * (c) Fabien Potencier <fabien.potencier@symfony-project.com>
  *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
+
+namespace Symfony\Component\HttpFoundation;
+
+use Symfony\Component\HttpFoundation\SessionStorage\SessionStorageInterface;
 
 /**
  * Session.
@@ -165,6 +165,15 @@ class Session implements \Serializable
     public function invalidate()
     {
         $this->clear();
+        $this->storage->regenerate();
+    }
+
+    /**
+     * Migrates the current session to a new session id while maintaining all
+     * session attributes.
+     */
+    public function migrate()
+    {
         $this->storage->regenerate();
     }
 

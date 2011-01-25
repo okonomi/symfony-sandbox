@@ -1,38 +1,29 @@
 <?php
 
+/*
+ * This file is part of the Symfony package.
+ *
+ * (c) Fabien Potencier <fabien.potencier@symfony-project.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Symfony\Component\HttpKernel;
 
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\HttpFoundation\Response;
 
-/*
- * This file is part of the Symfony framework.
- *
- * (c) Fabien Potencier <fabien.potencier@symfony-project.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
- */
-
 /**
  * ResponseListener fixes the Response Content-Type.
+ *
+ * The filter method must be connected to the core.response event.
  *
  * @author Fabien Potencier <fabien.potencier@symfony-project.com>
  */
 class ResponseListener
 {
-    /**
-     * Registers a core.response listener to change the Content-Type header based on the Request format.
-     *
-     * @param EventDispatcher $dispatcher An EventDispatcher instance
-     * @param integer         $priority   The priority
-     */
-    public function register(EventDispatcher $dispatcher, $priority = 0)
-    {
-        $dispatcher->connect('core.response', array($this, 'filter'), $priority);
-    }
-
     /**
      * Filters the Response.
      *

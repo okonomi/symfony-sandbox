@@ -1,20 +1,20 @@
 <?php
 
-namespace Symfony\Bundle\FrameworkBundle\Templating\Helper;
-
-use Symfony\Component\Templating\Helper\Helper;
-use Symfony\Component\Templating\Engine;
-use Symfony\Component\Form\FieldInterface;
-use Symfony\Component\Form\FieldGroupInterface;
-
 /*
- * This file is part of the Symfony framework.
+ * This file is part of the Symfony package.
  *
  * (c) Fabien Potencier <fabien.potencier@symfony-project.com>
  *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
+
+namespace Symfony\Bundle\FrameworkBundle\Templating\Helper;
+
+use Symfony\Component\Templating\Helper\Helper;
+use Symfony\Component\Form\FieldInterface;
+use Symfony\Component\Form\FieldGroupInterface;
+use Symfony\Bundle\FrameworkBundle\Templating\DelegatingEngine;
 
 /**
  * Form is a factory that wraps Form instances.
@@ -28,7 +28,7 @@ class FormHelper extends Helper
 
     protected $engine;
 
-    public function __construct(Engine $engine)
+    public function __construct(DelegatingEngine $engine)
     {
         $this->engine = $engine;
     }
@@ -106,10 +106,27 @@ class FormHelper extends Helper
         )));
     }
 
+    /**
+     * Renders the entire form field "row".
+     *
+     * @param  FieldInterface $field
+     * @return string
+     */
+    public function row(/*FieldInterface*/ $field, $template = null)
+    {
+        if (null === $template) {
+            $template = 'FrameworkBundle:Form:field_row.html.php';
+        }
+
+        return $this->engine->render($template, array(
+            'field' => $field,
+        ));
+    }
+
     public function label(/*FieldInterface */$field, $label = false, array $parameters = array(), $template = null)
     {
         if (null === $template) {
-            $template = 'FrameworkBundle:Form:label.php';
+            $template = 'FrameworkBundle:Form:label.html.php';
         }
 
         return $this->engine->render($template, array(
@@ -122,7 +139,7 @@ class FormHelper extends Helper
     public function errors(/*FieldInterface */$field, array $parameters = array(), $template = null)
     {
         if (null === $template) {
-            $template = 'FrameworkBundle:Form:errors.php';
+            $template = 'FrameworkBundle:Form:errors.html.php';
         }
 
         return $this->engine->render($template, array(
@@ -134,7 +151,7 @@ class FormHelper extends Helper
     public function hidden(/*FieldGroupInterface */$group, array $parameters = array(), $template = null)
     {
         if (null === $template) {
-            $template = 'FrameworkBundle:Form:hidden.php';
+            $template = 'FrameworkBundle:Form:hidden.html.php';
         }
 
         return $this->engine->render($template, array(
@@ -161,7 +178,7 @@ class FormHelper extends Helper
 
             $underscoredName = strtolower(preg_replace(array('/([A-Z]+)([A-Z][a-z])/', '/([a-z\d])([A-Z])/'), array('\\1_\\2', '\\1_\\2'), strtr($className, '_', '.')));
 
-            if ($this->engine->exists($guess = 'FrameworkBundle:Form:'.$underscoredName.'.php')) {
+            if ($this->engine->exists($guess = 'FrameworkBundle:Form:'.$underscoredName.'.html.php')) {
                 $template = $guess;
             }
 
@@ -169,7 +186,7 @@ class FormHelper extends Helper
         } while (null === $template && false !== $currentFqClassName);
 
         if (null === $template && $field instanceof FieldGroupInterface) {
-            $template = 'FrameworkBundle:Form:field_group.php';
+            $template = 'FrameworkBundle:Form:field_group.html.php';
         }
 
         self::$cache[$fqClassName] = $template;
