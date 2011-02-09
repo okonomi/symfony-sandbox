@@ -1,7 +1,5 @@
 <?php
 
-require_once __DIR__.'/../src/autoload.php';
-
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\DependencyInjection\Loader\LoaderInterface;
 
@@ -21,10 +19,10 @@ class AppKernel extends Kernel
             //new Symfony\Bundle\DoctrineMongoDBBundle\DoctrineMongoDBBundle(),
 
             // register your bundles
-            new Application\HelloBundle\HelloBundle(),
+            new Sensio\HelloBundle\HelloBundle(),
         );
 
-        if ($this->isDebug()) {
+        if ('dev' === $this->getEnvironment()) {
             $bundles[] = new Symfony\Bundle\WebProfilerBundle\WebProfilerBundle();
         }
 
