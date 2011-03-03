@@ -14,6 +14,7 @@ namespace Symfony\Bundle\ZendBundle\DependencyInjection;
 use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\Config\FileLocator;
 
 /**
  * ZendExtension is an extension for the Zend Framework libraries.
@@ -34,16 +35,23 @@ class ZendExtension extends Extension
      * @param array            $config    An array of configuration settings
      * @param ContainerBuilder $container A ContainerBuilder instance
      */
-    public function configLoad(array $configs, ContainerBuilder $container)
+    public function load(array $configs, ContainerBuilder $container)
     {
-        $loader = new XmlFileLoader($container, __DIR__.'/../Resources/config');
-        $loader->load('logger.xml');
-        $container->setAlias('logger', 'zend.logger');
-
+        $first = true;
         foreach ($configs as $config) {
-            if (isset($config['logger'])) {
-                $this->registerLoggerConfiguration($config, $container);
+            if (!isset($config['logger'])) {
+                continue;
             }
+
+            if ($first) {
+                $first = false;
+
+                $loader = new XmlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
+                $loader->load('logger.xml');
+                $container->setAlias('logger', 'zend.logger');
+            }
+
+            $this->registerLoggerConfiguration($config, $container);
         }
     }
 
@@ -92,10 +100,5 @@ class ZendExtension extends Extension
     public function getNamespace()
     {
         return 'http://www.symfony-project.org/schema/dic/zend';
-    }
-
-    public function getAlias()
-    {
-        return 'zend';
     }
 }

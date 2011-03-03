@@ -11,7 +11,7 @@
 
 namespace Symfony\Bundle\SecurityBundle\DependencyInjection\Security\Factory;
 
-use Symfony\Component\DependencyInjection\Configuration\Builder\NodeBuilder;
+use Symfony\Component\Config\Definition\Builder\NodeBuilder;
 
 use Symfony\Component\DependencyInjection\DefinitionDecorator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -42,10 +42,6 @@ abstract class AbstractFactory implements SecurityFactoryInterface
     {
         // authentication provider
         $authProviderId = $this->createAuthProvider($container, $id, $config, $userProviderId);
-        $container
-            ->getDefinition($authProviderId)
-            ->addTag('security.authentication_provider')
-        ;
 
         // authentication listener
         $listenerId = $this->createListener($container, $id, $config, $userProviderId);

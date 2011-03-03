@@ -4,6 +4,7 @@ namespace Symfony\Component\HttpKernel\DependencyInjection;
 
 use Symfony\Component\DependencyInjection\Extension\Extension as BaseExtension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Container;
 
 /*
  * This file is part of the Symfony framework.
@@ -62,5 +63,43 @@ abstract class Extension extends BaseExtension
     public function addClassesToAutoloadMap(array $classes)
     {
         $this->classMap = array_merge($this->classMap, $classes);
+    }
+
+    /**
+     * Returns the base path for the XSD files.
+     *
+     * @return string The XSD base path
+     */
+    public function getXsdValidationBasePath()
+    {
+        return false;
+    }
+
+    /**
+     * Returns the namespace to be used for this extension (XML namespace).
+     *
+     * @return string The XML namespace
+     */
+    public function getNamespace()
+    {
+        return false;
+    }
+
+    /**
+     * Returns the recommended alias to use in XML.
+     *
+     * This alias is also the mandatory prefix to use when using YAML.
+     *
+     * @return string The alias
+     */
+    public function getAlias()
+    {
+        $className = get_class($this);
+        if (substr($className, -9) != 'Extension') {
+            throw new \BadMethodCallException('This extension does not follow the naming convention; you must overwrite the getAlias() method.');
+        }
+        $classBaseName = substr(strrchr($className, '\\'), 1, -9);
+
+        return Container::underscore($classBaseName);
     }
 }

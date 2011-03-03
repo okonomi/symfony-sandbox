@@ -11,7 +11,7 @@
 
 namespace Symfony\Bundle\SecurityBundle\DependencyInjection\Security\Factory;
 
-use Symfony\Component\DependencyInjection\Configuration\Builder\NodeBuilder;
+use Symfony\Component\Config\Definition\Builder\NodeBuilder;
 
 use Symfony\Component\DependencyInjection\DefinitionDecorator;
 
@@ -32,7 +32,6 @@ class X509Factory implements SecurityFactoryInterface
             ->setDefinition($provider, new DefinitionDecorator('security.authentication.provider.pre_authenticated'))
             ->setArgument(0, new Reference($userProvider))
             ->addArgument($id)
-            ->addTag('security.authentication_provider')
         ;
 
         // listener

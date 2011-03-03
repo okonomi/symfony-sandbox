@@ -2,8 +2,8 @@
 
 namespace Symfony\Bundle\FrameworkBundle\DependencyInjection;
 
-use Symfony\Component\DependencyInjection\Configuration\Builder\NodeBuilder;
-use Symfony\Component\DependencyInjection\Configuration\Builder\TreeBuilder;
+use Symfony\Component\Config\Definition\Builder\NodeBuilder;
+use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 
 /**
  * FrameworkExtension configuration structure.
@@ -16,12 +16,12 @@ class Configuration
      * Generates the configuration tree.
      *
      * @param boolean $kernelDebug The kernel.debug DIC parameter
-     * @return \Symfony\Component\DependencyInjection\Configuration\NodeInterface
+     * @return \Symfony\Component\Config\Definition\NodeInterface
      */
     public function getConfigTree($kernelDebug)
     {
         $treeBuilder = new TreeBuilder();
-        $rootNode = $treeBuilder->root('app:config', 'array');
+        $rootNode = $treeBuilder->root('framework', 'array');
 
         $rootNode
             ->scalarNode('cache_warmer')->defaultValue(!$kernelDebug)->end()
@@ -76,11 +76,10 @@ class Configuration
         $rootNode
             ->arrayNode('profiler')
                 ->canBeUnset()
-                ->treatNullLike(array())
-                ->treatTrueLike(array())
                 ->booleanNode('only_exceptions')->end()
                 ->arrayNode('matcher')
                     ->canBeUnset()
+                    ->performNoDeepMerging()
                     ->scalarNode('ip')->end()
                     ->scalarNode('path')->end()
                     ->scalarNode('service')->end()
@@ -96,6 +95,7 @@ class Configuration
                 ->canBeUnset()
                 ->scalarNode('cache_warmer')->end()
                 ->scalarNode('resource')->isRequired()->end()
+                ->scalarNode('type')->end()
                 ->end()
         ;
     }
@@ -105,8 +105,6 @@ class Configuration
         $rootNode
             ->arrayNode('session')
                 ->canBeUnset()
-                ->treatNullLike(array())
-                ->treatTrueLike(array())
                 // Strip "pdo." prefix from option keys, since dots cannot appear in node names
                 ->beforeNormalization()
                     ->ifArray()
@@ -151,6 +149,7 @@ class Configuration
                 ->scalarNode('cache_warmer')->end()
                 ->fixXmlConfig('engine')
                 ->arrayNode('engines')
+                    ->isRequired()
                     ->requiresAtLeastOneElement()
                     ->beforeNormalization()
                         ->ifTrue(function($v){ return !is_array($v); })
@@ -196,6 +195,7 @@ class Configuration
                     ->ifTrue(function($v) { return is_array($v) && !empty($v['annotations']) && !empty($v['namespace']); })
                     ->then(function($v){
                         $v['annotations'] = array('namespace' => $v['namespace']);
+                        unset($v['namespace']);
                         return $v;
                     })
                     ->end()
@@ -206,7 +206,7 @@ class Configuration
                     ->treatTrueLike(array())
                     ->fixXmlConfig('namespace')
                     ->arrayNode('namespaces')
-                        ->containsNameValuePairsWithKeyAttribute('prefix')
+                        ->useAttributeAsKey('prefix')
                         ->prototype('scalar')
                             ->beforeNormalization()
                                 ->ifTrue(function($v) { return is_array($v) && isset($v['namespace']); })

@@ -2,7 +2,7 @@
 
 namespace Symfony\Bundle\SecurityBundle\DependencyInjection;
 
-use Symfony\Component\DependencyInjection\Configuration\Builder\TreeBuilder;
+use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 
 /**
  * This class contains the configuration information for the following tags:
@@ -17,24 +17,13 @@ use Symfony\Component\DependencyInjection\Configuration\Builder\TreeBuilder;
  */
 class Configuration
 {
-    public function getAclConfigTree()
-    {
-        $tb = new TreeBuilder();
-
-        return $tb
-            ->root('security:acl', 'array')
-                ->scalarNode('connection')->end()
-                ->scalarNode('cache')->end()
-            ->end()
-            ->buildTree();
-    }
-
     public function getFactoryConfigTree()
     {
         $tb = new TreeBuilder();
 
         return $tb
-            ->root('security:config', 'array')
+            ->root('security', 'array')
+                ->ignoreExtraKeys()
                 ->fixXmlConfig('factory', 'factories')
                 ->arrayNode('factories')
                     ->prototype('scalar')->end()
@@ -46,13 +35,20 @@ class Configuration
     public function getMainConfigTree(array $factories)
     {
         $tb = new TreeBuilder();
-        $rootNode = $tb->root('security:config', 'array');
+        $rootNode = $tb->root('security', 'array');
 
         $rootNode
-            ->scalarNode('access_denied_url')->end()
+            ->scalarNode('access_denied_url')->defaultNull()->end()
             ->scalarNode('session_fixation_strategy')->cannotBeEmpty()->defaultValue('migrate')->end()
+
+            // add a faux-entry for factories, so that no validation error is thrown
+            ->fixXmlConfig('factory', 'factories')
+            ->arrayNode('factories')
+                ->ignoreExtraKeys()
+            ->end()
         ;
 
+        $this->addAclSection($rootNode);
         $this->addEncodersSection($rootNode);
         $this->addProvidersSection($rootNode);
         $this->addFirewallsSection($rootNode, $factories);
@@ -62,12 +58,22 @@ class Configuration
         return $tb->buildTree();
     }
 
+    protected function addAclSection($rootNode)
+    {
+        $rootNode
+            ->arrayNode('acl')
+                ->scalarNode('connection')->end()
+                ->scalarNode('cache')->end()
+            ->end()
+        ;
+    }
+
     protected function addRoleHierarchySection($rootNode)
     {
         $rootNode
             ->fixXmlConfig('role', 'role_hierarchy')
             ->arrayNode('role_hierarchy')
-                ->containsNameValuePairsWithKeyAttribute('id')
+                ->useAttributeAsKey('id')
                 ->prototype('array')
                     ->performNoDeepMerging()
                     ->beforeNormalization()->ifString()->then(function($v) { return array('value' => $v); })->end()
@@ -103,7 +109,7 @@ class Configuration
                     ->end()
                     ->fixXmlConfig('attribute')
                     ->arrayNode('attributes')
-                        ->containsNameValuePairsWithKeyAttribute('key')
+                        ->useAttributeAsKey('key')
                         ->prototype('scalar')
                             ->beforeNormalization()
                                 ->ifTrue(function($v) { return is_array($v) && isset($v['pattern']); })
@@ -122,6 +128,8 @@ class Configuration
         $rootNode
             ->fixXmlConfig('firewall')
             ->arrayNode('firewalls')
+                ->isRequired()
+                ->requiresAtLeastOneElement()
                 ->disallowNewKeysInSubsequentConfigs()
                 ->useAttributeAsKey('name')
                 ->prototype('array')
@@ -139,6 +147,7 @@ class Configuration
                         ->canBeUnset()
                         ->scalarNode('path')->defaultValue('/logout')->end()
                         ->scalarNode('target')->defaultValue('/')->end()
+                        ->scalarNode('success_handler')->end()
                         ->booleanNode('invalidate_session')->defaultTrue()->end()
                         ->fixXmlConfig('delete_cookie')
                         ->arrayNode('delete_cookies')
@@ -157,7 +166,7 @@ class Configuration
                             ->prototype('scalar')->end()
                         ->end()
                     ->end()
-                    ->booleanNode('anonymous')->end()
+                    ->booleanNode('anonymous')->defaultFalse()->end()
                     ->arrayNode('switch_user')
                         ->scalarNode('provider')->end()
                         ->scalarNode('parameter')->defaultValue('_switch_user')->end()
@@ -183,12 +192,17 @@ class Configuration
             ->fixXmlConfig('provider')
             ->arrayNode('providers')
                 ->disallowNewKeysInSubsequentConfigs()
+                ->isRequired()
                 ->requiresAtLeastOneElement()
                 ->useAttributeAsKey('name')
                 ->prototype('array')
                     ->scalarNode('id')->end()
                     ->fixXmlConfig('provider')
                     ->arrayNode('providers')
+                        ->beforeNormalization()
+                            ->ifString()
+                            ->then(function($v) { return preg_split('/\s*,\s*/', $v); })
+                        ->end()
                         ->prototype('scalar')->end()
                     ->end()
                     ->fixXmlConfig('user')
@@ -206,10 +220,6 @@ class Configuration
                         ->scalarNode('class')->isRequired()->cannotBeEmpty()->end()
                         ->scalarNode('property')->defaultNull()->end()
                     ->end()
-                    ->arrayNode('document')
-                        ->scalarNode('class')->isRequired()->cannotBeEmpty()->end()
-                        ->scalarNode('property')->defaultNull()->end()
-                    ->end()
                 ->end()
             ->end()
         ;
@@ -220,10 +230,13 @@ class Configuration
         $rootNode
             ->fixXmlConfig('encoder')
             ->arrayNode('encoders')
+                ->requiresAtLeastOneElement()
                 ->useAttributeAsKey('class')
                 ->prototype('array')
+                    ->canBeUnset()
+                    ->performNoDeepMerging()
                     ->beforeNormalization()->ifString()->then(function($v) { return array('algorithm' => $v); })->end()
-                    ->scalarNode('algorithm')->isRequired()->cannotBeEmpty()->end()
+                    ->scalarNode('algorithm')->cannotBeEmpty()->end()
                     ->booleanNode('ignore_case')->end()
                     ->booleanNode('encode_as_base64')->end()
                     ->scalarNode('iterations')->end()

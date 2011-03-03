@@ -167,7 +167,7 @@ class Parser
                     $value = Inline::load($this->lines[0]);
                     if (is_array($value)) {
                         $first = reset($value);
-                        if ('*' === substr($first, 0, 1)) {
+                        if (is_string($first) && '*' === substr($first, 0, 1)) {
                             $data = array();
                             foreach ($value as $alias) {
                                 $data[] = $this->refs[substr($alias, 1)];
@@ -293,6 +293,8 @@ class Parser
 
     /**
      * Moves the parser to the next line.
+     *
+     * @return Boolean
      */
     protected function moveToNextLine()
     {
@@ -320,7 +322,7 @@ class Parser
      *
      * @return mixed  A PHP value
      *
-     * @throws ParserException When reference doesn't not exist
+     * @throws ParserException When reference does not exist
      */
     protected function parseValue($value)
     {

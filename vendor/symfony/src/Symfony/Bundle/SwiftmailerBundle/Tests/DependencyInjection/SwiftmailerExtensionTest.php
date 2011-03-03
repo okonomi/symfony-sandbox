@@ -22,12 +22,26 @@ class SwiftmailerExtensionTest extends TestCase
         $container = new ContainerBuilder();
         $loader = new SwiftmailerExtension();
 
-        $loader->configLoad(array(array()), $container);
+        $loader->load(array(array()), $container);
         $this->assertEquals('Swift_Mailer', $container->getParameter('swiftmailer.class'), '->mailerLoad() loads the swiftmailer.xml file if not already loaded');
 
-        $loader->configLoad(array(array('transport' => 'sendmail')), $container);
+        $loader->load(array(array('transport' => 'sendmail')), $container);
         $this->assertEquals('sendmail', $container->getParameter('swiftmailer.transport.name'), '->mailerLoad() overrides existing configuration options');
-        $loader->configLoad(array(array()), $container);
-        $this->assertEquals('sendmail', $container->getParameter('swiftmailer.transport.name'), '->mailerLoad() overrides existing configuration options');
+        $this->assertEquals('swiftmailer.transport.sendmail', (string) $container->getAlias('swiftmailer.transport'));
+
+        $loader->load(array(array()), $container);
+        $this->assertEquals('smtp', $container->getParameter('swiftmailer.transport.name'), '->mailerLoad() provides default values for configuration options');
+        $this->assertEquals('swiftmailer.transport.smtp', (string) $container->getAlias('swiftmailer.transport'));
     }
+
+    public function testSpool()
+    {
+        $container = new ContainerBuilder();
+        $loader = new SwiftmailerExtension();
+
+        $loader->load(array(array('spool' => array())), $container);
+        $this->assertEquals('swiftmailer.transport.spool', (string) $container->getAlias('swiftmailer.transport'));
+        $this->assertEquals('swiftmailer.transport.smtp', (string) $container->getAlias('swiftmailer.transport.real'));
+    }
+
 }
